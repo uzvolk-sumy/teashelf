@@ -254,6 +254,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 <script>
 (() => {
   "use strict";
+  const APP_VERSION = "4";
   const CACHE_KEY = "teashelf.snapshot.v1";
   const CONFIG_KEY = "teashelf.config.v1";
   const QUEUE_KEY = "teashelf.queue.v1";
@@ -517,7 +518,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   function setSync(t) {
     const base = state.loadedAt ? `Notion · ${new Date(state.loadedAt).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })}` : "";
     const q = state.queue.length ? ` · у черзі ${state.queue.length}` : "";
-    $("syncText").textContent = (t || (state.fromCache ? "Збережена копія" : base)) + q;
+    $("syncText").textContent = (t || (state.fromCache ? "Збережена копія" : base)) + q + " · в." + APP_VERSION;
   }
   function showBanner(text, allow) {
     const b = $("banner");
@@ -819,7 +820,16 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   state.queue = store.get(QUEUE_KEY, []);
   render();
   load(false);
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  // Нова версія сайту: браузер перевіряє sw.js без HTTP-кешу, а щойно новий воркер бере керування — перезавантажуємо сторінку.
+  if ("serviceWorker" in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !reloaded && !tm && !sheet) { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+      reg.update().catch(() => {});
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+    }).catch(() => {});
+  }
 })();
 </script>
 </body>

@@ -1,5 +1,5 @@
 // Чайна полиця: офлайн-кеш оболонки застосунку. Дані з Notion сюди не потрапляють.
-const CACHE = "teashelf-shell-v3";
+const CACHE = "teashelf-shell-v4";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -14,7 +14,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   // Сторінка: спершу мережа (щоб оновлення доходили), без мережі — кеш.
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put("index.html", copy)); return res; })
+    e.respondWith(fetch(req, { cache: "no-store" }).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put("index.html", copy)); return res; })
       .catch(() => caches.match("index.html")));
     return;
   }
