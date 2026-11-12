@@ -219,6 +219,11 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 .whenpick { display: flex; gap: 6px; flex-wrap: wrap; }
 .whenpick button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
 .whenpick button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.presets { display: grid; gap: 8px; justify-items: center; }
+.presets .row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.presets .row span { color: var(--muted); font-size: 13px; font-weight: 600; min-width: 92px; text-align: right; }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.presets button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 60; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 600; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
 
 </style>
@@ -233,6 +238,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     </div>
     <div class="sync">
       <span id="syncText"></span>
+      <button class="iconbtn" id="quickBtn" type="button">⏱ Таймер</button>
       <button class="iconbtn add" id="addBtn" type="button">+ Чай</button>
       <button class="iconbtn" id="refresh" type="button">Оновити</button>
       <button class="iconbtn" id="settingsBtn" type="button" aria-label="Підключення">⚙︎</button>
@@ -271,7 +277,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 <script>
 (() => {
   "use strict";
-  const APP_VERSION = "7";
+  const APP_VERSION = "8";
   const CACHE_KEY = "teashelf.snapshot.v1";
   const CONFIG_KEY = "teashelf.config.v1";
   const QUEUE_KEY = "teashelf.queue.v1";
@@ -755,6 +761,37 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     tm.left = tm.dur;
     $("timerHost").hidden = false; keepAwake(true); renderTimer();
   }
+  const QUICK_KEY = "teashelf.quick.v1";
+  const QUICK_FIRST = [5, 10, 15, 20, 30, 45, 60];
+  const QUICK_STEP = [0, 3, 5, 10, 15];
+  const QUICK_RINSE = [[0, 0, "без промивки"], [1, 5, "5 с"], [2, 5, "двічі по 5 с"], [1, 10, "10 с"]];
+  /** Таймер без чаю з полиці: нічого не записує в Notion, пам'ятає останні налаштування на цьому пристрої. */
+  function openQuickTimer() {
+    const q = Object.assign({ first: 15, step: 5, rinseTimes: 0, rinseSec: 0 }, store.get(QUICK_KEY, {}));
+    const plan = { list: null, first: q.first, step: q.step, max: 0 };
+    const rinse = { times: q.rinseTimes, sec: q.rinseSec };
+    tm = { tea: { id: "", name: "Просто таймер", water: "", ratio: "", dose: "", count: "", cat: "" }, quick: true, plan, rinse,
+      rinsesDone: 0, kind: rinse.times ? "rinse" : "steep", steep: rinse.times ? 0 : 1, dur: 0, endAt: 0, left: 0, running: false, finished: false };
+    tm.dur = tm.left = tm.kind === "rinse" ? rinse.sec : q.first;
+    $("timerHost").hidden = false; keepAwake(true); renderTimer();
+  }
+  function setQuick(kind, v) {
+    if (!tm || !tm.quick) return;
+    if (kind === "first") tm.plan.first = v;
+    else if (kind === "step") tm.plan.step = v;
+    else if (kind === "rinse") {
+      const [times, sec] = QUICK_RINSE[v];
+      tm.rinse = { times, sec };
+      // Промивку можна ввімкнути/вимкнути, поки не почався перший пролив.
+      if (!tm.running && (tm.kind === "rinse" || tm.steep <= 1)) {
+        tm.rinsesDone = 0; tm.finished = false;
+        if (times) { tm.kind = "rinse"; tm.steep = 0; } else { tm.kind = "steep"; tm.steep = 1; }
+      }
+    }
+    store.set(QUICK_KEY, { first: tm.plan.first, step: tm.plan.step, rinseTimes: tm.rinse.times, rinseSec: tm.rinse.sec });
+    if (!tm.running) { tm.finished = false; tm.dur = tm.kind === "rinse" ? tm.rinse.sec : steepSeconds(tm.plan, tm.steep); tm.left = tm.dur; }
+    renderTimer();
+  }
   function closeTimer() { if (raf) { cancelAnimationFrame(raf); raf = 0; } tm = null; $("timerHost").hidden = true; $("timerHost").innerHTML = ""; keepAwake(false); }
   // Анімація: кожен кадр (requestAnimationFrame) рахує точну частку часу від Date.now()
   // і рухає лише дугу прогресу та «настій» усередині; решта таймера перемальовується тільки при зміні стану.
@@ -812,20 +849,25 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     const btn = tm.finished ? (tm.kind === "rinse" ? (tm.rinsesDone + 1 < tm.rinse.times ? "Ще промивка" : "До першого проливу") : "Наступний пролив") : tm.running ? "Пауза" : tm.left < tm.dur ? "Продовжити" : "Старт";
     $("timerHost").innerHTML = `<div class="timer">
       <h2>${esc(nameParts(t.name).main)}</h2>
-      <p class="hint">${esc([t.water, t.ratio || t.dose].filter(Boolean).join(" · "))}</p>
+      <p class="hint">${esc(tm.quick ? "Без запису в Notion" : [t.water, t.ratio || t.dose].filter(Boolean).join(" · "))}</p>
       <div class="phase">${esc(label)}</div>
       <button type="button" class="ring${tm.finished ? " done" : ""}" data-t="toggle" aria-label="${esc(btn)}">
         <svg viewBox="0 0 320 320" aria-hidden="true"><circle class="liq" id="tLiq" cx="160" cy="160" r="126"></circle><circle class="track" cx="160" cy="160" r="140"></circle><circle class="prog" id="tProg" cx="160" cy="160" r="140" stroke-dasharray="${RING_C.toFixed(2)}"></circle></svg>
         <span class="center"><span class="secs" id="tSecs"></span><span class="lbl">${esc(main)}</span></span>
       </button>
       <div class="stepper"><button type="button" data-t="minus">−5 с</button><span>${tm.dur} с</span><button type="button" data-t="plus">+5 с</button></div>
+      ${tm.quick ? `<div class="presets">
+        <div class="row"><span>Перший пролив</span>${QUICK_FIRST.map((v) => `<button type="button" data-qf="${v}" aria-pressed="${tm.plan.first === v}">${v < 60 ? v + " с" : v / 60 + " хв"}</button>`).join("")}</div>
+        <div class="row"><span>Промивка</span>${QUICK_RINSE.map(([times, sec, label], i) => `<button type="button" data-qr="${i}" aria-pressed="${tm.rinse.times === times && tm.rinse.sec === sec}">${label}</button>`).join("")}</div>
+        <div class="row"><span>Кожен наступний</span>${QUICK_STEP.map((v) => `<button type="button" data-qs="${v}" aria-pressed="${tm.plan.step === v}">${v ? "+" + v + " с" : "так само"}</button>`).join("")}</div>
+      </div>` : ""}
       <div class="tbar">
         <button type="button" class="btn liquor" data-t="toggle">${esc(btn)}</button>
         ${!tm.finished && tm.kind === "steep" || tm.kind === "rinse" ? `<button type="button" class="btn ghost" data-t="skip">${tm.kind === "rinse" ? "Без промивки" : "Пропустити пролив"}</button>` : ""}
       </div>
       <div class="tbar">
-        <button type="button" class="btn" data-t="finish">Допили — записати</button>
-        <button type="button" class="btn ghost" data-t="cancel">Закрити без запису</button>
+        ${tm.quick ? `<button type="button" class="btn ghost" data-t="cancel">Закрити таймер</button>` : `<button type="button" class="btn" data-t="finish">Допили — записати</button>
+        <button type="button" class="btn ghost" data-t="cancel">Закрити без запису</button>`}
       </div>
     </div>`;
     paintTimer();
@@ -872,6 +914,9 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     if (d.act === "brew") { const t = cur(); if (t) { unlockAudio(); openTimer(t); } return; }
     if (d.act === "quick") { const t = cur(); if (t) openFinish(t, 1); return; }
     if (d.act === "impr") { const t = cur(); const ta = t && $("impr-" + t.id); if (t && ta) await saveImpressions(t, ta.value.trim()); return; }
+    if (d.qf && tm) { setQuick("first", +d.qf); return; }
+    if (d.qs !== undefined && tm) { setQuick("step", +d.qs); return; }
+    if (d.qr !== undefined && tm) { setQuick("rinse", +d.qr); return; }
     if (d.t && tm) {
       if (d.t === "toggle") startPause();
       else if (d.t === "minus") adjust(-5);
@@ -919,6 +964,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   });
   $("refresh").addEventListener("click", () => load(true));
   $("settingsBtn").addEventListener("click", () => openSetup());
+  $("quickBtn").addEventListener("click", () => { unlockAudio(); openQuickTimer(); });
   $("addBtn").addEventListener("click", () => { if (!config()) openSetup(); else openAdd(); });
   window.addEventListener("online", () => { flushQueue().then(() => load(false)); });
   const cur = () => state.teas.find((t) => t.id === state.selected);
