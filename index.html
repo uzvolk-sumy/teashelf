@@ -87,7 +87,7 @@ a.btn { text-decoration: none; text-align: center; }
 .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 0 0 8px; }
 .advice-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
 .pick { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 14px; display: grid; gap: 4px; min-width: 0; }
-.pick:first-child { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pick[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .pick .why { color: var(--muted); font-size: 13px; }
 .pick { gap: 12px; align-content: space-between; }
 .pick-open { all: unset; display: grid; gap: 4px; cursor: pointer; min-width: 0; }
@@ -254,7 +254,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 <script>
 (() => {
   "use strict";
-  const APP_VERSION = "4";
+  const APP_VERSION = "5";
   const CACHE_KEY = "teashelf.snapshot.v1";
   const CONFIG_KEY = "teashelf.config.v1";
   const QUEUE_KEY = "teashelf.queue.v1";
@@ -551,7 +551,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     if (!picks.length) { $("advice").innerHTML = ""; return; }
     $("advice").innerHTML = `<p class="eyebrow">${esc(dp.night ? "Пізно, але якщо хочеться" : "Що заварити зараз")}</p><div class="advice-row">${picks.map(({ t, why }) => {
       const p = steepPlan(t);
-      return `<div class="pick"><button type="button" class="pick-open" data-open="${t.id}"><span class="cat" style="--c:${catVar(t.cat)}"><span class="dot"></span>${esc(t.cat || "Чай")}</span><span class="name">${esc(nameParts(t.name).main)}</span><span class="why">${esc(why.slice(0, 2).join(" · "))}</span><span class="meta"><span>${esc(tempShort(t.water))}</span><span>${p.first} с, +${p.step} с</span></span></button><button type="button" class="btn liquor" data-brew="${t.id}">Заварити → таймер</button></div>`;
+      return `<div class="pick" aria-current="${state.selected === t.id}"><button type="button" class="pick-open" data-open="${t.id}"><span class="cat" style="--c:${catVar(t.cat)}"><span class="dot"></span>${esc(t.cat || "Чай")}</span><span class="name">${esc(nameParts(t.name).main)}</span><span class="why">${esc(why.slice(0, 2).join(" · "))}</span><span class="meta"><span>${esc(tempShort(t.water))}</span><span>${p.first} с, +${p.step} с</span></span></button><button type="button" class="btn liquor" data-brew="${t.id}">Заварити → таймер</button></div>`;
     }).join("")}</div>`;
   }
   const FILTERS = [["in", "На полиці"], ["all", "Усі"], ["want", "Хочу ще"], ["out", "Випито"]];

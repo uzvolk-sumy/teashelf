@@ -1,5 +1,5 @@
 // Чайна полиця: офлайн-кеш оболонки застосунку. Дані з Notion сюди не потрапляють.
-const CACHE = "teashelf-shell-v4";
+const CACHE = "teashelf-shell-v5";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
