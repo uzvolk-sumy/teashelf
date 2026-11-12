@@ -13,6 +13,7 @@
  *   {key, op: "load"}
  *   {key, op: "createLog", log: {teaId, title, action, date, time, verdict, note, steeps, clientKey}}
  *   {key, op: "updateTea", teaId, props: {"Оцінка": "★★★"|null, "Статус": "...", "Дата дегустації": "2026-11-12", "Враження": "..."}}
+ *   {key, op: "createTea", tea: {"Назва": "...", "Категорія": "...", ... "Коли пити": ["вдень"]}}
  */
 
 var NOTION_VERSION = '2026-03-11';
@@ -27,6 +28,17 @@ var TEA_WRITABLE = {
   'Статус': 'select',
   'Дата дегустації': 'date',
   'Враження': 'rich_text'
+};
+
+// Поля нового чаю, які застосунок може заповнити, і їхні типи в Notion.
+var TEA_CREATABLE = {
+  'Назва': 'title',
+  'Категорія': 'select', 'Формат': 'select', 'Регіон': 'select', 'Статус': 'select',
+  'Бренд / виробник': 'rich_text', 'Очікуваний профіль': 'rich_text',
+  'Скільки класти': 'rich_text', 'Пропорція': 'rich_text', 'Вода': 'rich_text', 'Промивка': 'rich_text',
+  'Проливи': 'rich_text', 'Кількість проливів': 'rich_text', 'Порада': 'rich_text', 'Заварювання': 'rich_text',
+  'Коли пити': 'multi_select',
+  'Посилання': 'url'
 };
 
 function doGet() {
@@ -51,6 +63,8 @@ function doPost(e) {
         });
       case 'createLog':
         return json_({ ok: true, id: createLog_(body.log || {}) });
+      case 'createTea':
+        return json_({ ok: true, tea: flatten_(createTea_(body.tea || {})) });
       case 'updateTea':
         updateTea_(body.teaId, body.props || {});
         return json_({ ok: true });
@@ -172,6 +186,24 @@ function updateTea_(teaId, props) {
     if (type === 'rich_text') properties[name] = { rich_text: text_(v) };
   });
   if (Object.keys(properties).length) notion_('patch', 'pages/' + teaId, { properties: properties });
+}
+
+/** Нова сторінка в «Чайному журналі». */
+function createTea_(tea) {
+  var name = String(tea['Назва'] || '').trim();
+  if (!name) throw new Error('bad_tea_name');
+  var properties = {};
+  Object.keys(TEA_CREATABLE).forEach(function (field) {
+    var type = TEA_CREATABLE[field], v = tea[field];
+    if (v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length)) return;
+    if (type === 'title') properties[field] = { title: text_(v) };
+    if (type === 'select') properties[field] = { select: { name: String(v).replace(/,/g, ' ').trim() } };
+    if (type === 'rich_text') properties[field] = { rich_text: text_(v) };
+    if (type === 'multi_select') properties[field] = { multi_select: [].concat(v).map(function (x) { return { name: String(x).replace(/,/g, ' ').trim() }; }) };
+    if (type === 'url') properties[field] = { url: String(v).trim() };
+  });
+  if (!properties['Статус']) properties['Статус'] = { select: { name: 'В колекції' } };
+  return notion_('post', 'pages', { parent: { type: 'data_source_id', data_source_id: DS.teas }, properties: properties, icon: { type: 'emoji', emoji: '🍵' } });
 }
 
 function json_(obj) {

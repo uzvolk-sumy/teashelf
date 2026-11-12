@@ -204,6 +204,21 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 .setup input { border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; background: var(--surface); min-width: 0; width: 100%; }
 .setup p { margin: 0; color: var(--muted); }
 .setup .err { color: var(--danger); font-weight: 600; }
+.iconbtn.add { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.addform { width: min(720px, 100%); align-self: start; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; display: grid; gap: 18px; }
+.addform h2 { font-family: var(--f-display); font-weight: 600; font-size: 22px; margin: 0; }
+.addform fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; min-width: 0; }
+.addform legend { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin-bottom: 10px; padding: 0; }
+.fgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.addform label { display: grid; gap: 6px; font-weight: 600; font-size: 14px; min-width: 0; }
+.addform label.wide { grid-column: 1 / -1; }
+.addform input, .addform select { border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; background: var(--surface); min-width: 0; width: 100%; font-size: 16px; }
+.addform textarea { font-size: 16px; min-height: 72px; }
+.addform .hint { font-weight: 500; color: var(--muted); font-size: 12px; }
+.addform .err { color: var(--danger); font-weight: 600; margin: 0; }
+.whenpick { display: flex; gap: 6px; flex-wrap: wrap; }
+.whenpick button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
+.whenpick button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 60; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 600; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
 @media (prefers-reduced-motion: reduce) { .ring .prog { transition: none; } }
 </style>
@@ -218,6 +233,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     </div>
     <div class="sync">
       <span id="syncText"></span>
+      <button class="iconbtn add" id="addBtn" type="button">+ Чай</button>
       <button class="iconbtn" id="refresh" type="button">Оновити</button>
       <button class="iconbtn" id="settingsBtn" type="button" aria-label="Підключення">⚙︎</button>
     </div>
@@ -249,12 +265,13 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 <div class="overlay" id="timerHost" hidden></div>
 <div class="overlay" id="sheetHost" hidden></div>
 <div class="overlay" id="setupHost" hidden></div>
+<div class="overlay" id="addHost" hidden></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
 (() => {
   "use strict";
-  const APP_VERSION = "5";
+  const APP_VERSION = "6";
   const CACHE_KEY = "teashelf.snapshot.v1";
   const CONFIG_KEY = "teashelf.config.v1";
   const QUEUE_KEY = "teashelf.queue.v1";
@@ -497,6 +514,77 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   }
   function saveImpressions(tea, text) {
     setTea(tea, { "Враження": text }); tea.impressions = text; persistSnapshot(); render(); toast("Враження збережено");
+  }
+
+  // ---------- new tea
+  const OPTIONS = {
+    "Категорія": ["Шен пуер", "Шу пуер", "Улун утесний (яньча)", "Улун аньсійський", "Червоний чай", "Білий", "Зелений", "Ароматизований / купаж"],
+    "Формат": ["Розсипний", "Млинець (бін ча)", "Туоча", "Міні-точа / сяо бін", "Цегла / плитка", "Перлини (лунчжу)", "Саше"],
+    "Регіон": ["Юньнань", "Уїшань (Фуцзянь)", "Аньсі (Фуцзянь)", "Інше"],
+  };
+  const optionsFor = (field) => {
+    const key = { "Категорія": "cat", "Формат": "format", "Регіон": "region" }[field];
+    return [...new Set(OPTIONS[field].concat(state.teas.map((t) => t[key]).filter(Boolean)))];
+  };
+  let draft = null;
+  function openAdd() {
+    draft = { when: [], error: "", busy: false };
+    renderAdd(); $("addHost").hidden = false; $("addHost").scrollTop = 0;
+    setTimeout(() => { const el = $("f-name"); if (el) el.focus(); }, 50);
+  }
+  function closeAdd() { draft = null; $("addHost").hidden = true; $("addHost").innerHTML = ""; }
+  const fld = (id, label, opts = {}) => `<label for="${id}" class="${opts.wide ? "wide" : ""}">${esc(label)}${opts.hint ? ` <span class="hint">${esc(opts.hint)}</span>` : ""}${opts.area ? `<textarea id="${id}" placeholder="${esc(opts.ph || "")}"></textarea>` : `<input id="${id}" type="${opts.type || "text"}" placeholder="${esc(opts.ph || "")}" autocomplete="off"${opts.required ? " required" : ""}>`}</label>`;
+  const sel = (id, field, def) => `<label for="${id}">${esc(field)}<select id="${id}"><option value="">—</option>${optionsFor(field).map((o) => `<option${o === def ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
+  function renderAdd() {
+    $("addHost").innerHTML = `<form class="addform" id="addForm" novalidate>
+      <h2>Новий чай</h2>
+      <fieldset><legend>Основне</legend><div class="fgrid">
+        ${fld("f-name", "Назва", { wide: true, required: true, ph: "Напр. Лао Бань Чжан (老班章) 2019, 357 г" })}
+        ${sel("f-cat", "Категорія")}${sel("f-format", "Формат")}${sel("f-region", "Регіон")}
+        <label for="f-status">Статус<select id="f-status">${STATUSES.map((st) => `<option${st === "В колекції" ? " selected" : ""}>${esc(st)}</option>`).join("")}</select></label>
+      </div></fieldset>
+      <fieldset><legend>Заварювання</legend><div class="fgrid">
+        ${fld("f-water", "Вода", { ph: "90–95 °C або окріп" })}
+        ${fld("f-rinse", "Промивка", { ph: "5 с · двічі по 5 с · не обов'язково" })}
+        ${fld("f-steeps", "Проливи (для таймера)", { ph: "10–15 с, далі +5 с" })}
+        ${fld("f-count", "Кількість проливів", { ph: "6–8" })}
+        ${fld("f-dose", "Скільки класти", { ph: "5–6 г" })}
+        ${fld("f-ratio", "Пропорція", { ph: "5–6 г на 100 мл" })}
+        <div class="wide" style="grid-column:1/-1"><p class="section-title">Коли пити</p><div class="whenpick">${DAYPARTS.map((d) => `<button type="button" data-when="${esc(d.key)}" aria-pressed="${draft.when.includes(d.key)}">${esc(d.key)}</button>`).join("")}</div></div>
+      </div></fieldset>
+      <fieldset><legend>Опис</legend><div class="fgrid">
+        ${fld("f-profile", "Очікуваний профіль", { wide: true, area: true, ph: "Смак, аромат, настій" })}
+        ${fld("f-tip", "Порада", { wide: true, ph: "Напр. не передержувати" })}
+        ${fld("f-brand", "Бренд / виробник", { wide: true })}
+        ${fld("f-link", "Посилання на магазин", { wide: true, type: "url", ph: "https://…" })}
+      </div></fieldset>
+      <p class="err" id="addErr" hidden></p>
+      <div class="actions"><button type="submit" class="btn" id="addSubmit">Додати в Notion</button><button type="button" class="btn ghost" data-act="add-close">Скасувати</button></div>
+    </form>`;
+  }
+  async function submitAdd() {
+    const v = (id) => ($(id) ? $(id).value.trim() : "");
+    const err = (t) => { const e = $("addErr"); e.textContent = t; e.hidden = !t; };
+    if (!v("f-name")) { err("Вкажи назву чаю."); $("f-name").focus(); return; }
+    const link = v("f-link");
+    if (link && !/^https?:\/\//i.test(link)) { err("Посилання має починатися з https://"); return; }
+    const tea = {
+      "Назва": v("f-name"), "Категорія": v("f-cat"), "Формат": v("f-format"), "Регіон": v("f-region"), "Статус": v("f-status") || "В колекції",
+      "Вода": v("f-water"), "Промивка": v("f-rinse"), "Проливи": v("f-steeps"), "Кількість проливів": v("f-count"),
+      "Скільки класти": v("f-dose"), "Пропорція": v("f-ratio"), "Коли пити": draft.when.slice(),
+      "Очікуваний профіль": v("f-profile"), "Порада": v("f-tip"), "Бренд / виробник": v("f-brand"), "Посилання": link,
+    };
+    const btn = $("addSubmit"); btn.disabled = true; btn.textContent = "Додаю…"; err("");
+    try {
+      const res = await api("createTea", { tea });
+      const t = teaFrom(res.tea || {});
+      if (!t.id) throw new BridgeError("error", "Notion не повернув новий чай");
+      state.teas.push(t); state.selected = t.id; state.filter = IN_STOCK.includes(t.status) ? "in" : "all";
+      persistSnapshot(); closeAdd(); render(); toast("Чай додано в Notion");
+    } catch (e) {
+      err(e.code === "offline" ? "Немає зв'язку з Notion. Новий чай можна додати лише онлайн." : e.code === "unknown_op" ? "Скрипт у Google ще стара версія: встав новий Code.gs і зроби «Нова версія» розгортання." : explain(e));
+      btn.disabled = false; btn.textContent = "Додати в Notion";
+    }
   }
 
   // ---------- setup
@@ -761,6 +849,8 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     if (d.act === "reload") { load(true); return; }
     if (d.act === "setup") { openSetup(); return; }
     if (d.act === "setup-close") { closeSetup(); return; }
+    if (d.act === "add-close") { closeAdd(); return; }
+    if (d.when && draft) { const k = d.when; draft.when = draft.when.includes(k) ? draft.when.filter((x) => x !== k) : draft.when.concat(k); el.setAttribute("aria-pressed", String(draft.when.includes(k))); return; }
     if (d.act === "brew") { const t = cur(); if (t) { unlockAudio(); openTimer(t); } return; }
     if (d.act === "quick") { const t = cur(); if (t) openFinish(t, 1); return; }
     if (d.act === "impr") { const t = cur(); const ta = t && $("impr-" + t.id); if (t && ta) await saveImpressions(t, ta.value.trim()); return; }
@@ -782,6 +872,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     if (d.sStar && sheet) { sheet.note = $("finishNote").value; const n = +d.sStar; sheet.stars = n === sheet.stars ? 0 : n; renderSheet(); return; }
   });
   document.addEventListener("submit", async (ev) => {
+    if (ev.target.id === "addForm") { ev.preventDefault(); submitAdd(); return; }
     if (ev.target.id === "setupForm") {
       ev.preventDefault();
       const url = $("cfgUrl").value.trim(), key = $("cfgKey").value.trim();
@@ -800,7 +891,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   });
   document.addEventListener("keydown", (ev) => {
     if (ev.key !== "Escape") return;
-    if (!$("setupHost").hidden && config()) closeSetup(); else if (sheet) closeSheet(); else if (tm) closeTimer(); else if (state.selected) { state.selected = null; render(); }
+    if (draft) closeAdd(); else if (!$("setupHost").hidden && config()) closeSetup(); else if (sheet) closeSheet(); else if (tm) closeTimer(); else if (state.selected) { state.selected = null; render(); }
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
@@ -810,6 +901,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   });
   $("refresh").addEventListener("click", () => load(true));
   $("settingsBtn").addEventListener("click", () => openSetup());
+  $("addBtn").addEventListener("click", () => { if (!config()) openSetup(); else openAdd(); });
   window.addEventListener("online", () => { flushQueue().then(() => load(false)); });
   const cur = () => state.teas.find((t) => t.id === state.selected);
   setInterval(() => { if (!tm && !sheet && state.tab === "shelf") renderAdvice(currentDaypart()); }, 10 * 60 * 1000);
