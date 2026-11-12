@@ -113,16 +113,39 @@ a.btn { text-decoration: none; text-align: center; }
 .pill.now { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 .empty { color: var(--muted); padding: 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r); }
 
-/* detail: a full-screen reading sheet over the shelf, one comfortable column */
-html.sheet-open, html.sheet-open body { overflow: hidden; }
-.detail-host { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
-  padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px)); }
-.detail-bar { position: sticky; top: 0; z-index: 2; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 760px; margin: 0 auto; padding-block: 12px; }
-.detail-bar .back { border: 0; background: none; color: var(--accent); font-weight: 700; font-size: 17px; padding: 6px 0; }
-.detail { max-width: 760px; margin: 0 auto; display: grid; gap: 22px; min-width: 0; font-size: 17px; line-height: 1.55; }
-.detail h2 { font-family: var(--f-display); font-weight: 600; font-size: clamp(24px, 3.6vw, 32px); line-height: 1.2; margin: 6px 0 0; text-wrap: balance; overflow-wrap: anywhere; }
-.detail .sub { color: var(--muted); margin: 4px 0 0; font-size: 16px; }
-.detail .cat { font-size: 14px; }
+/* detail. Narrow screens: a full-screen reading sheet. iPad width: app header stays put,
+   the shelf and the open tea scroll in two panes that start at the same line. */
+.detail-host { background: var(--bg); min-width: 0; }
+.detail-head { position: sticky; top: 0; z-index: 2; background: var(--bg); padding-block: 12px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.detail-head .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.detail-head .back { border: 0; background: none; color: var(--accent); font-weight: 700; font-size: 17px; padding: 4px 0; }
+.detail-placeholder { color: var(--muted); padding: 32px 8px; text-align: center; }
+@media (max-width: 899px) {
+  html.sheet-open, html.sheet-open body { overflow: hidden; }
+  .detail-host { position: fixed; inset: 0; z-index: 30; overflow-y: auto; overscroll-behavior: contain;
+    padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px)); }
+  .detail-head, .detail { max-width: 760px; margin-inline: auto; }
+  .detail-host[data-empty] { display: none; }
+}
+@media (min-width: 900px) {
+  html, body { overflow: hidden; }
+  .wrap { height: 100%; display: flex; flex-direction: column; padding-block: 16px 0; }
+  .top, #banner, .tabs { flex: none; }
+  .tabs { align-self: flex-start; }
+  .detail-head .row:first-child { display: none; }
+  #view-shelf, #view-journal { flex: 1 1 auto; min-height: 0; }
+  #view-journal { overflow-y: auto; padding-bottom: 32px; }
+  #view-shelf .layout { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 42%); gap: 24px; align-items: stretch; }
+  .list-pane, .detail-host { height: 100%; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 32px; }
+  .list-pane { padding-right: 4px; }
+  .detail-host { border-left: 1px solid var(--line); padding-left: 24px; }
+  .detail-head .back { display: none; }
+  .detail-head { padding-top: 0; }
+}
+.detail { display: grid; gap: 22px; padding-top: 18px; min-width: 0; font-size: 17px; line-height: 1.55; }
+.detail-head h2 { font-family: var(--f-display); font-weight: 600; font-size: clamp(22px, 2.6vw, 30px); line-height: 1.2; margin: 2px 0 0; text-wrap: balance; overflow-wrap: anywhere; }
+.detail-head .sub, .detail .sub { color: var(--muted); margin: 0; font-size: 15px; }
+.detail-head .cat { font-size: 14px; }
 .detail .actions .btn { font-size: 17px; padding-block: 14px; }
 .params { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .param { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-width: 0; font-size: 17px; }
@@ -208,9 +231,9 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   </div>
 
   <section id="view-shelf">
-    <div class="advice" id="advice"></div>
     <div class="layout">
-      <div>
+      <div class="list-pane" id="listPane">
+        <div class="advice" id="advice"></div>
         <div class="filters" id="filters"></div>
         <div class="grid" id="grid"><div class="empty">Чаї з «Чайного журналу» в Notion з'являться тут.</div></div>
       </div>
@@ -514,7 +537,10 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     document.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)));
     $("view-shelf").hidden = state.tab !== "shelf";
     $("view-journal").hidden = state.tab !== "journal";
-    if (state.tab === "shelf") { renderAdvice(dp); renderFilters(); renderGrid(); renderDetail(); }
+    if (state.tab === "shelf") {
+      if (!state.selected && window.matchMedia("(min-width: 900px)").matches) { const top = advise()[0]; if (top) state.selected = top.t.id; }
+      renderAdvice(dp); renderFilters(); renderGrid(); renderDetail();
+    }
     else renderJournal();
   }
   function plural(n, a, b, c) { const m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return a; if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return b; return c; }
@@ -556,19 +582,25 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   function renderDetail() {
     const host = $("detailHost");
     const t = state.teas.find((x) => x.id === state.selected);
-    document.documentElement.classList.toggle("sheet-open", !!t);
-    if (!t) { host.hidden = true; host.innerHTML = ""; return; }
+    const wide = window.matchMedia("(min-width: 900px)").matches;
+    document.documentElement.classList.toggle("sheet-open", !!t && !wide);
     host.hidden = false;
+    if (!t) {
+      host.setAttribute("data-empty", "");
+      host.innerHTML = state.teas.length ? '<p class="detail-placeholder">Вибери чай на полиці, щоб побачити, як його заварювати.</p>' : "";
+      return;
+    }
+    host.removeAttribute("data-empty");
     const np = nameParts(t.name); const st = brewStats(t.id);
     const hist = state.log.filter((e) => e.teaId === t.id).slice(0, 6);
-    host.innerHTML = `<div class="detail-bar"><button type="button" class="back" data-act="close">‹ Полиця</button><span class="stars">${starsView(t.stars)}</span></div>
+    host.innerHTML = `<header class="detail-head">
+      <div class="row"><button type="button" class="back" data-act="close">‹ Полиця</button></div>
+      <div class="row"><span class="cat" style="--c:${catVar(t.cat)}"><span class="dot"></span>${esc([t.cat, t.format, t.region].filter(Boolean).join(" · "))}</span><span class="stars">${starsView(t.stars)}</span></div>
+      <h2>${esc(np.main)}</h2>
+      ${np.sub ? `<p class="sub">${esc(np.sub)}</p>` : ""}
+    </header>
     <article class="detail" aria-label="${esc(t.name)}">
-      <div>
-        <span class="cat" style="--c:${catVar(t.cat)}"><span class="dot"></span>${esc([t.cat, t.format, t.region].filter(Boolean).join(" · "))}</span>
-        <h2>${esc(np.main)}</h2>
-        ${np.sub ? `<p class="sub">${esc(np.sub)}</p>` : ""}
-        <p class="sub">${st.count ? `Заварював ${st.count} ${plural(st.count, "раз", "рази", "разів")}` : "Ще не заварював у застосунку"}${st.last ? ` · востаннє ${esc(fmtDate(st.last))}` : ""}</p>
-      </div>
+      <p class="sub">${st.count ? `Заварював ${st.count} ${plural(st.count, "раз", "рази", "разів")}` : "Ще не заварював у застосунку"}${st.last ? ` · востаннє ${esc(fmtDate(st.last))}` : ""}</p>
       <div class="actions">
         <button type="button" class="btn liquor" data-act="brew">Заварити з таймером</button>
         <button type="button" class="btn ghost" data-act="quick">Заварив без таймера</button>
