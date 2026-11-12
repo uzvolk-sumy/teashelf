@@ -78,6 +78,7 @@ button { cursor: pointer; }
 .banner p { margin: 0; min-width: 0; flex: 1 1 260px; }
 .btn { border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; border-radius: 12px; padding: 11px 18px; }
 .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+a.btn { text-decoration: none; text-align: center; }
 .btn.liquor { background: var(--liquor); color: #fff; }
 .btn:disabled { opacity: .5; cursor: default; }
 
@@ -94,7 +95,6 @@ button { cursor: pointer; }
 
 /* layout */
 .layout { display: grid; gap: 20px; }
-@media (min-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr) minmax(340px, 420px); align-items: start; } }
 .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
@@ -113,34 +113,36 @@ button { cursor: pointer; }
 .pill.now { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 .empty { color: var(--muted); padding: 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r); }
 
-/* detail */
-.detail { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
-@media (min-width: 900px) { .detail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; } }
-@media (max-width: 899px) {
-  .detail-host { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto; padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(12px, env(safe-area-inset-left, 0px)); }
-  .detail-host .detail { margin-block: 12px 24px; }
-}
-.detail h2 { font-family: var(--f-display); font-weight: 600; font-size: 21px; line-height: 1.25; margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
-.detail .sub { color: var(--muted); margin: 4px 0 0; }
-.close { justify-self: end; }
-.params { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.param { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
-.param b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 2px; }
+/* detail: a full-screen reading sheet over the shelf, one comfortable column */
+html.sheet-open, html.sheet-open body { overflow: hidden; }
+.detail-host { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px)); }
+.detail-bar { position: sticky; top: 0; z-index: 2; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 760px; margin: 0 auto; padding-block: 12px; }
+.detail-bar .back { border: 0; background: none; color: var(--accent); font-weight: 700; font-size: 17px; padding: 6px 0; }
+.detail { max-width: 760px; margin: 0 auto; display: grid; gap: 22px; min-width: 0; font-size: 17px; line-height: 1.55; }
+.detail h2 { font-family: var(--f-display); font-weight: 600; font-size: clamp(24px, 3.6vw, 32px); line-height: 1.2; margin: 6px 0 0; text-wrap: balance; overflow-wrap: anywhere; }
+.detail .sub { color: var(--muted); margin: 4px 0 0; font-size: 16px; }
+.detail .cat { font-size: 14px; }
+.detail .actions .btn { font-size: 17px; padding-block: 14px; }
+.params { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.param { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-width: 0; font-size: 17px; }
+.param b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 4px; }
 .param.wide { grid-column: 1 / -1; }
+.block { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; display: grid; gap: 14px; }
 .prose { margin: 0; overflow-wrap: anywhere; }
-.section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 0 0 6px; }
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 0 0 6px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .actions .btn { flex: 1 1 auto; }
 .rate { display: flex; gap: 4px; }
 .rate button { border: 0; background: none; font-size: 28px; line-height: 1; color: var(--line); padding: 2px; }
 .rate button.on { color: var(--star); }
 .seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.seg button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 8px; font-weight: 600; font-size: 13px; }
+.seg button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 11px 8px; font-weight: 600; font-size: 15px; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
 .hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.hist li { display: flex; gap: 10px; font-size: 13px; color: var(--muted); }
-.hist time { font-variant-numeric: tabular-nums; flex: none; width: 82px; color: var(--ink); }
+.hist li { display: flex; gap: 12px; font-size: 15px; color: var(--muted); }
+.hist time { font-variant-numeric: tabular-nums; flex: none; width: 96px; color: var(--ink); }
 
 /* journal */
 .month h3 { font-family: var(--f-display); font-weight: 400; font-size: 17px; margin: 18px 0 8px; }
@@ -554,12 +556,13 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   function renderDetail() {
     const host = $("detailHost");
     const t = state.teas.find((x) => x.id === state.selected);
+    document.documentElement.classList.toggle("sheet-open", !!t);
     if (!t) { host.hidden = true; host.innerHTML = ""; return; }
     host.hidden = false;
     const np = nameParts(t.name); const st = brewStats(t.id);
     const hist = state.log.filter((e) => e.teaId === t.id).slice(0, 6);
-    host.innerHTML = `<article class="detail" aria-label="${esc(t.name)}">
-      <button type="button" class="iconbtn close" data-act="close">Закрити</button>
+    host.innerHTML = `<div class="detail-bar"><button type="button" class="back" data-act="close">‹ Полиця</button><span class="stars">${starsView(t.stars)}</span></div>
+    <article class="detail" aria-label="${esc(t.name)}">
       <div>
         <span class="cat" style="--c:${catVar(t.cat)}"><span class="dot"></span>${esc([t.cat, t.format, t.region].filter(Boolean).join(" · "))}</span>
         <h2>${esc(np.main)}</h2>
@@ -575,12 +578,11 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
         ${param("Промивка", t.rinse)}${param("Проливи", t.steeps)}${param("Кількість проливів", t.count)}
         ${param("Коли пити", t.when.join(", "))}
       </div>
-      ${t.tip ? `<div><p class="section-title">Порада</p><p class="prose">${esc(t.tip)}</p></div>` : ""}
-      ${t.profile ? `<div><p class="section-title">Очікуваний профіль</p><p class="prose">${esc(t.profile)}</p></div>` : ""}
-      <div><p class="section-title">Оцінка</p><div class="rate" role="group" aria-label="Оцінка">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="${n <= t.stars ? "on" : ""}" data-star="${n}" aria-label="${n} з 5">★</button>`).join("")}</div></div>
+      ${t.tip || t.profile ? `<div class="block">${t.tip ? `<div><p class="section-title">Порада</p><p class="prose">${esc(t.tip)}</p></div>` : ""}${t.profile ? `<div><p class="section-title">Очікуваний профіль</p><p class="prose">${esc(t.profile)}</p></div>` : ""}</div>` : ""}
+      <div class="block"><div><p class="section-title">Оцінка</p><div class="rate" role="group" aria-label="Оцінка">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="${n <= t.stars ? "on" : ""}" data-star="${n}" aria-label="${n} з 5">★</button>`).join("")}</div></div>
       <div><p class="section-title">Статус</p><div class="seg">${STATUSES.map((s) => `<button type="button" data-status="${esc(s)}" aria-pressed="${t.status === s}">${esc(s)}</button>`).join("")}</div></div>
       <div><p class="section-title">Враження</p><textarea id="impr-${t.id}" placeholder="Що відчув у чашці">${esc(t.impressions)}</textarea>
-        <div class="actions" style="margin-top:8px"><button type="button" class="btn ghost" data-act="impr">Зберегти враження</button></div></div>
+        <div class="actions" style="margin-top:8px"><button type="button" class="btn ghost" data-act="impr">Зберегти враження</button></div></div></div>
       ${t.brand ? `<div><p class="section-title">Бренд / виробник</p><p class="prose">${esc(t.brand)}</p></div>` : ""}
       ${hist.length ? `<div><p class="section-title">Історія</p><ul class="hist">${hist.map((e) => `<li><time>${esc(fmtDate(e.date))}</time><span>${esc(e.action)}${e.action === "заварив" && e.steeps !== "" ? `, ${esc(e.steeps)} прол.` : ""}${e.verdict ? ` · ${esc(e.verdict)}` : ""}${e.note ? ` · ${esc(e.note)}` : ""}</span></li>`).join("")}</ul></div>` : ""}
       <div class="actions"><a class="btn ghost" href="${esc(t.url.replace("app.notion.com/p/", "www.notion.so/"))}" target="_blank" rel="noopener">Відкрити в Notion</a>${t.link ? `<a class="btn ghost" href="${esc(t.link)}" target="_blank" rel="noopener">Магазин</a>` : ""}</div>
@@ -718,7 +720,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     const d = el.dataset;
     if (d.tab) { state.tab = d.tab; render(); return; }
     if (d.filter) { state.filter = d.filter; render(); return; }
-    if (d.open) { state.selected = d.open; render(); if (window.matchMedia("(max-width: 899px)").matches) $("detailHost").scrollTop = 0; return; }
+    if (d.open) { state.selected = d.open; render(); $("detailHost").scrollTop = 0; return; }
     if (d.brew) { const t = state.teas.find((x) => x.id === d.brew); if (t) { state.selected = t.id; render(); unlockAudio(); openTimer(t); } return; }
     if (d.star) { const t = cur(); if (t) await setStars(t, +d.star); return; }
     if (d.status) { const t = cur(); if (t) await setStatus(t, d.status); return; }
