@@ -183,8 +183,8 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 .ring { position: relative; width: min(320px, 78vw); aspect-ratio: 1; max-width: 100%; border: 0; background: none; padding: 0; border-radius: 50%; }
 .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .ring .track { fill: none; stroke: var(--surface-2); stroke-width: 14; }
-.ring .prog { fill: none; stroke: var(--liquor); stroke-width: 14; stroke-linecap: round; transition: stroke-dashoffset .25s linear; }
-.ring .liq { fill: var(--liquor-soft); }
+.ring .prog { fill: none; stroke: var(--liquor); stroke-width: 14; stroke-linecap: round; will-change: stroke-dashoffset; }
+.ring .liq { fill: var(--liquor-soft); transform-box: fill-box; transform-origin: center; transform: scale(.03); will-change: transform; }
 .ring .center { position: absolute; inset: 0; display: grid; place-content: center; gap: 4px; }
 .ring .secs { font-family: var(--f-display); font-weight: 600; font-size: clamp(54px, 15vw, 84px); font-variant-numeric: tabular-nums; line-height: 1; }
 .ring .lbl { color: var(--muted); font-weight: 600; }
@@ -220,7 +220,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 .whenpick button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
 .whenpick button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 60; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 600; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
-@media (prefers-reduced-motion: reduce) { .ring .prog { transition: none; } }
+
 </style>
 </head>
 <body>
@@ -271,7 +271,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
 <script>
 (() => {
   "use strict";
-  const APP_VERSION = "6";
+  const APP_VERSION = "7";
   const CACHE_KEY = "teashelf.snapshot.v1";
   const CONFIG_KEY = "teashelf.config.v1";
   const QUEUE_KEY = "teashelf.queue.v1";
@@ -755,19 +755,38 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
     tm.left = tm.dur;
     $("timerHost").hidden = false; keepAwake(true); renderTimer();
   }
-  function closeTimer() { tm = null; $("timerHost").hidden = true; $("timerHost").innerHTML = ""; keepAwake(false); }
-  function tick() {
-    if (!tm || !tm.running) return;
-    tm.left = Math.max(0, Math.ceil((tm.endAt - Date.now()) / 1000));
-    if (tm.left <= 0) { tm.running = false; tm.finished = true; beep(); }
-    renderTimer();
-    if (tm && tm.running) setTimeout(tick, 250);
+  function closeTimer() { if (raf) { cancelAnimationFrame(raf); raf = 0; } tm = null; $("timerHost").hidden = true; $("timerHost").innerHTML = ""; keepAwake(false); }
+  // Анімація: кожен кадр (requestAnimationFrame) рахує точну частку часу від Date.now()
+  // і рухає лише дугу прогресу та «настій» усередині; решта таймера перемальовується тільки при зміні стану.
+  const RING_C = 2 * Math.PI * 140;
+  let raf = 0;
+  const remaining = () => tm.running ? Math.max(0, (tm.endAt - Date.now()) / 1000) : tm.left;
+  function paintTimer() {
+    if (!tm) return;
+    const left = remaining();
+    const frac = tm.dur ? Math.min(1, Math.max(0, 1 - left / tm.dur)) : 0;
+    const prog = $("tProg"), liq = $("tLiq"), secs = $("tSecs");
+    if (prog) prog.style.strokeDashoffset = (RING_C * (1 - frac)).toFixed(2);
+    if (liq) liq.style.transform = `scale(${(0.03 + 0.97 * frac).toFixed(4)})`;
+    if (secs) {
+      const whole = Math.ceil(left - 1e-6);
+      const txt = whole >= 60 ? `${Math.floor(whole / 60)}:${pad(whole % 60)}` : String(whole);
+      if (secs.textContent !== txt) secs.textContent = txt;
+    }
   }
+  function frame() {
+    raf = 0;
+    if (!tm || !tm.running) return;
+    if (tm.endAt - Date.now() <= 0) { tm.running = false; tm.finished = true; tm.left = 0; beep(); renderTimer(); return; }
+    paintTimer();
+    raf = requestAnimationFrame(frame);
+  }
+  function tick() { if (tm && tm.running && !raf) raf = requestAnimationFrame(frame); }
   function startPause() {
     unlockAudio();
     if (tm.finished) return nextPhase();
-    if (tm.running) { tm.running = false; tm.left = Math.max(0, Math.ceil((tm.endAt - Date.now()) / 1000)); renderTimer(); return; }
-    tm.running = true; tm.endAt = Date.now() + tm.left * 1000; renderTimer(); setTimeout(tick, 250);
+    if (tm.running) { tm.left = remaining(); tm.running = false; renderTimer(); return; }
+    tm.running = true; tm.endAt = Date.now() + tm.left * 1000; renderTimer(); tick();
   }
   function adjust(d) {
     const nd = Math.max(3, tm.dur + d);
@@ -787,19 +806,17 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
   }
   function renderTimer() {
     if (!tm) return;
-    const t = tm.tea; const C = 2 * Math.PI * 140;
-    const frac = tm.dur ? 1 - tm.left / tm.dur : 0;
+    const t = tm.tea;
     const label = tm.kind === "rinse" ? `Промивка${tm.rinse.times > 1 ? ` ${tm.rinsesDone + 1} з ${tm.rinse.times}` : ""}` : `Пролив ${tm.steep}${t.count ? ` · з ${t.count}` : ""}`;
     const main = tm.finished ? (tm.kind === "rinse" ? "Злий промивку" : "Зливай!") : tm.running ? "Настоюється" : tm.left < tm.dur ? "Пауза" : "Залий воду й торкнись";
     const btn = tm.finished ? (tm.kind === "rinse" ? (tm.rinsesDone + 1 < tm.rinse.times ? "Ще промивка" : "До першого проливу") : "Наступний пролив") : tm.running ? "Пауза" : tm.left < tm.dur ? "Продовжити" : "Старт";
-    const secs = tm.left >= 60 ? `${Math.floor(tm.left / 60)}:${pad(tm.left % 60)}` : String(tm.left);
     $("timerHost").innerHTML = `<div class="timer">
       <h2>${esc(nameParts(t.name).main)}</h2>
       <p class="hint">${esc([t.water, t.ratio || t.dose].filter(Boolean).join(" · "))}</p>
       <div class="phase">${esc(label)}</div>
       <button type="button" class="ring${tm.finished ? " done" : ""}" data-t="toggle" aria-label="${esc(btn)}">
-        <svg viewBox="0 0 320 320" aria-hidden="true"><circle class="liq" cx="160" cy="160" r="${(126 * Math.max(0.04, frac)).toFixed(1)}"></circle><circle class="track" cx="160" cy="160" r="140"></circle><circle class="prog" cx="160" cy="160" r="140" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - frac)).toFixed(1)}"></circle></svg>
-        <span class="center"><span class="secs">${secs}</span><span class="lbl">${esc(main)}</span></span>
+        <svg viewBox="0 0 320 320" aria-hidden="true"><circle class="liq" id="tLiq" cx="160" cy="160" r="126"></circle><circle class="track" cx="160" cy="160" r="140"></circle><circle class="prog" id="tProg" cx="160" cy="160" r="140" stroke-dasharray="${RING_C.toFixed(2)}"></circle></svg>
+        <span class="center"><span class="secs" id="tSecs"></span><span class="lbl">${esc(main)}</span></span>
       </button>
       <div class="stepper"><button type="button" data-t="minus">−5 с</button><span>${tm.dur} с</span><button type="button" data-t="plus">+5 с</button></div>
       <div class="tbar">
@@ -811,6 +828,7 @@ textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid va
         <button type="button" class="btn ghost" data-t="cancel">Закрити без запису</button>
       </div>
     </div>`;
+    paintTimer();
   }
   function skipPhase() {
     if (tm.kind === "rinse") { tm.rinsesDone = tm.rinse.times - 1; }
