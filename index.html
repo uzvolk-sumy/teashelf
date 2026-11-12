@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Чайна полиця</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Чайна полиця">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef2ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121614" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: celadon porcelain shelf — tea grid on the left, the open tea on the right (iPad), full-screen brewing timer on top. */
+:root {
+  --bg: #eef2ef;
+  --surface: #ffffff;
+  --surface-2: #e3eae5;
+  --ink: #18201c;
+  --muted: #5d6b64;
+  --line: #cfd9d2;
+  --accent: #3f7663;      /* celadon glaze */
+  --accent-ink: #ffffff;
+  --liquor: #b5651d;      /* tea liquor amber */
+  --liquor-soft: #f3dfc8;
+  --danger: #a23b2c;
+  --star: #c48a1a;
+  --shen: #5c8f3e; --shu: #6e4630; --yancha: #c06a2b; --anxi: #b59a22;
+  --red: #a8392f; --blend: #b9577e; --white: #8f9a94; --green: #3d7f9e; --other: #7a857f;
+  --shadow: 0 1px 2px rgb(24 32 28 / .06), 0 4px 14px rgb(24 32 28 / .06);
+  --f-display: "Unbounded", "Manrope", system-ui, sans-serif;
+  --f-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121614; --surface: #1b211e; --surface-2: #232b27; --ink: #e6ece8; --muted: #9aa8a0; --line: #2f3933;
+  --accent: #7fbfa6; --accent-ink: #0f1512; --liquor: #e39a52; --liquor-soft: #3a2a1b; --danger: #e07a6a; --star: #e2b04a;
+  --shen: #8cc26a; --shu: #b88a6c; --yancha: #e39256; --anxi: #d9c25a; --red: #e07a6a; --blend: #e28fb2; --white: #b4beb8; --green: #74b6d3; --other: #9aa8a0;
+  --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #121614; --surface: #1b211e; --surface-2: #232b27; --ink: #e6ece8; --muted: #9aa8a0; --line: #2f3933;
+  --accent: #7fbfa6; --accent-ink: #0f1512; --liquor: #e39a52; --liquor-soft: #3a2a1b; --danger: #e07a6a; --star: #e2b04a;
+  --shen: #8cc26a; --shu: #b88a6c; --yancha: #e39256; --anxi: #d9c25a; --red: #e07a6a; --blend: #e28fb2; --white: #b4beb8; --green: #74b6d3; --other: #9aa8a0;
+  --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { color-scheme: light dark; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html, body { height: 100%; margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+button, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 40px; }
+
+/* header */
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.brand h1 { font-family: var(--f-display); font-weight: 600; font-size: clamp(22px, 3.2vw, 30px); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+.brand p { margin: 2px 0 0; color: var(--muted); }
+.sync { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.iconbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: 14px; }
+.iconbtn:disabled { opacity: .5; }
+.tabs { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 4px; gap: 2px; margin-bottom: 16px; }
+.tabs button { border: 0; background: transparent; padding: 8px 18px; border-radius: 999px; font-weight: 600; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+/* banner */
+.banner { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.banner.warn { border-color: color-mix(in srgb, var(--liquor) 45%, var(--line)); background: var(--liquor-soft); }
+.banner p { margin: 0; min-width: 0; flex: 1 1 260px; }
+.btn { border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; border-radius: 12px; padding: 11px 18px; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.liquor { background: var(--liquor); color: #fff; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* advice */
+.advice { margin-bottom: 18px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 0 0 8px; }
+.advice-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.pick { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 14px; display: grid; gap: 4px; min-width: 0; }
+.pick:first-child { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pick .why { color: var(--muted); font-size: 13px; }
+.pick { gap: 12px; align-content: space-between; }
+.pick-open { all: unset; display: grid; gap: 4px; cursor: pointer; min-width: 0; }
+.pick-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 8px; }
+
+/* layout */
+.layout { display: grid; gap: 20px; }
+@media (min-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr) minmax(340px, 420px); align-items: start; } }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.card { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 14px; display: grid; gap: 8px; align-content: start; min-width: 0; position: relative; }
+.card[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.card.out { opacity: .62; }
+.cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--other)); flex: none; }
+.name { font-weight: 700; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+.name small { display: block; font-weight: 500; color: var(--muted); font-size: 13px; }
+.meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stars { color: var(--star); letter-spacing: 1px; font-size: 13px; }
+.pill { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 8px; background: var(--surface-2); color: var(--muted); justify-self: start; }
+.pill.want { background: var(--liquor-soft); color: var(--liquor); }
+.pill.now { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.empty { color: var(--muted); padding: 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r); }
+
+/* detail */
+.detail { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+@media (min-width: 900px) { .detail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; } }
+@media (max-width: 899px) {
+  .detail-host { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto; padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(12px, env(safe-area-inset-left, 0px)); }
+  .detail-host .detail { margin-block: 12px 24px; }
+}
+.detail h2 { font-family: var(--f-display); font-weight: 600; font-size: 21px; line-height: 1.25; margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
+.detail .sub { color: var(--muted); margin: 4px 0 0; }
+.close { justify-self: end; }
+.params { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.param { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.param b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 2px; }
+.param.wide { grid-column: 1 / -1; }
+.prose { margin: 0; overflow-wrap: anywhere; }
+.section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 0 0 6px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions .btn { flex: 1 1 auto; }
+.rate { display: flex; gap: 4px; }
+.rate button { border: 0; background: none; font-size: 28px; line-height: 1; color: var(--line); padding: 2px; }
+.rate button.on { color: var(--star); }
+.seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 8px; font-weight: 600; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
+.hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.hist li { display: flex; gap: 10px; font-size: 13px; color: var(--muted); }
+.hist time { font-variant-numeric: tabular-nums; flex: none; width: 82px; color: var(--ink); }
+
+/* journal */
+.month h3 { font-family: var(--f-display); font-weight: 400; font-size: 17px; margin: 18px 0 8px; }
+.entries { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.entry { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 4px 12px; }
+.entry time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.entry .what { font-weight: 600; overflow-wrap: anywhere; }
+.entry .note { grid-column: 2; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+
+/* timer */
+.overlay { position: fixed; inset: 0; z-index: 50; background: var(--bg); overflow: auto; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px)); }
+.timer { width: min(520px, 100%); display: grid; gap: 18px; justify-items: center; text-align: center; }
+.timer h2 { font-family: var(--f-display); font-weight: 600; font-size: 20px; margin: 0; text-wrap: balance; }
+.timer .hint { color: var(--muted); margin: 0; }
+.ring { position: relative; width: min(320px, 78vw); aspect-ratio: 1; max-width: 100%; border: 0; background: none; padding: 0; border-radius: 50%; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .track { fill: none; stroke: var(--surface-2); stroke-width: 14; }
+.ring .prog { fill: none; stroke: var(--liquor); stroke-width: 14; stroke-linecap: round; transition: stroke-dashoffset .25s linear; }
+.ring .liq { fill: var(--liquor-soft); }
+.ring .center { position: absolute; inset: 0; display: grid; place-content: center; gap: 4px; }
+.ring .secs { font-family: var(--f-display); font-weight: 600; font-size: clamp(54px, 15vw, 84px); font-variant-numeric: tabular-nums; line-height: 1; }
+.ring .lbl { color: var(--muted); font-weight: 600; }
+.ring.done .secs { color: var(--liquor); }
+.stepper { display: flex; gap: 10px; align-items: center; }
+.stepper button { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.phase { font-weight: 700; font-size: 15px; }
+.tbar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+.tbar .btn { flex: 1 1 160px; padding-block: 14px; font-size: 16px; }
+
+/* sheet + toast */
+.sheet { width: min(480px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
+.sheet h2 { font-family: var(--f-display); font-weight: 600; font-size: 19px; margin: 0; }
+.setup { width: min(520px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; display: grid; gap: 14px; }
+.setup h2 { font-family: var(--f-display); font-weight: 600; font-size: 20px; margin: 0; }
+.setup label { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
+.setup input { border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; background: var(--surface); min-width: 0; width: 100%; }
+.setup p { margin: 0; color: var(--muted); }
+.setup .err { color: var(--danger); font-weight: 600; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 60; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 600; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
+@media (prefers-reduced-motion: reduce) { .ring .prog { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="brand">
+      <h1>Чайна полиця</h1>
+      <p id="daypart">Завантажую полицю…</p>
+    </div>
+    <div class="sync">
+      <span id="syncText"></span>
+      <button class="iconbtn" id="refresh" type="button">Оновити</button>
+      <button class="iconbtn" id="settingsBtn" type="button" aria-label="Підключення">⚙︎</button>
+    </div>
+  </header>
+
+  <div id="banner" hidden></div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tab-shelf" aria-selected="true" data-tab="shelf">Полиця</button>
+    <button type="button" role="tab" id="tab-journal" aria-selected="false" data-tab="journal">Журнал</button>
+  </div>
+
+  <section id="view-shelf">
+    <div class="advice" id="advice"></div>
+    <div class="layout">
+      <div>
+        <div class="filters" id="filters"></div>
+        <div class="grid" id="grid"><div class="empty">Чаї з «Чайного журналу» в Notion з'являться тут.</div></div>
+      </div>
+      <div class="detail-host" id="detailHost" hidden></div>
+    </div>
+  </section>
+
+  <section id="view-journal" hidden>
+    <div id="journal"><div class="empty">Тут буде історія чаювань із бази «Чаювання».</div></div>
+  </section>
+</div>
+
+<div class="overlay" id="timerHost" hidden></div>
+<div class="overlay" id="sheetHost" hidden></div>
+<div class="overlay" id="setupHost" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  "use strict";
+  const CACHE_KEY = "teashelf.snapshot.v1";
+  const CONFIG_KEY = "teashelf.config.v1";
+  const QUEUE_KEY = "teashelf.queue.v1";
+  const IN_STOCK = ["В колекції", "Заварюю зараз"];
+  const STATUSES = ["В колекції", "Заварюю зараз", "Випито", "Хочу ще"];
+  const CAT_COLOR = {
+    "Шен пуер": "--shen", "Шу пуер": "--shu", "Улун утесний (яньча)": "--yancha", "Улун аньсійський": "--anxi",
+    "Червоний чай": "--red", "Ароматизований / купаж": "--blend", "Білий": "--white", "Зелений": "--green",
+  };
+  const DAYPARTS = [
+    { key: "вранці", title: "Ранок", setting: "Ранок: початок, год", def: 5 },
+    { key: "вдень", title: "День", setting: "День: початок, год", def: 11 },
+    { key: "після обіду", title: "Після обіду", setting: "Після обіду: початок, год", def: 14 },
+    { key: "ввечері", title: "Вечір", setting: "Вечір: початок, год", def: 17 },
+  ];
+  const MONTHS = ["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
+  const MONTHS_GEN = ["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"];
+
+  const state = { teas: [], log: [], settings: {}, selected: null, tab: "shelf", filter: "in", loading: false, loadedAt: 0, fromCache: false, queue: [] };
+  const store = {
+    get(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ---------- helpers
+  const pid = (u) => { const m = String(u || "").replace(/-/g, "").match(/[0-9a-f]{32}/i); return m ? m[0].toLowerCase() : ""; };
+  const arr = (v) => { if (Array.isArray(v)) return v; try { const a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
+  const pad = (n) => String(n).padStart(2, "0");
+  const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const daysSince = (iso) => { if (!iso) return null; const a = new Date(iso.slice(0, 10) + "T00:00:00"); const b = new Date(todayISO() + "T00:00:00"); return Math.round((b - a) / 864e5); };
+  const ago = (iso) => { const d = daysSince(iso); if (d == null) return ""; if (d <= 0) return "сьогодні"; if (d === 1) return "учора"; if (d < 7) return `${d} дн. тому`; if (d < 30) return `${Math.round(d / 7)} тиж. тому`; return `${Math.round(d / 30)} міс. тому`; };
+  const fmtDate = (iso) => { if (!iso) return ""; const [y, m, d] = iso.slice(0, 10).split("-").map(Number); return `${d} ${MONTHS_GEN[m - 1]}`; };
+  const shortName = (n) => String(n || "").split(" (")[0];
+  const starsStr = (n) => n > 0 ? "★".repeat(n) : "";
+  const starsView = (n) => n > 0 ? "★".repeat(n) + "☆".repeat(5 - n) : "";
+  const verdictOf = (n) => n >= 4 ? "Сподобався" : n === 3 ? "Посередньо" : n > 0 ? "Не сподобався" : null;
+  const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : "k" + Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const catVar = (c) => `var(${CAT_COLOR[c] || "--other"})`;
+  const nameParts = (n) => { const m = String(n || "").match(/^(.*?)\s*(\(.*\))\s*(.*)$/); return m ? { main: (m[1] + (m[3] ? " " + m[3] : "")).trim(), sub: m[2] } : { main: n, sub: "" }; };
+
+  // ---------- parse brewing params
+  function steepPlan(t) {
+    const s = (t.steeps || "").toLowerCase();
+    let list = null;
+    const lm = s.match(/(\d+(?:\s*\/\s*\d+)+)\s*с/);
+    if (lm) list = lm[1].split("/").map((x) => +x.trim());
+    const m = s.match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*(хв|с)/);
+    const def = /шу/i.test(t.cat) ? 10 : /червоний|ароматиз/i.test(t.cat) ? 15 : 10;
+    const first = list ? list[0] : m ? +m[1] * (m[3] === "хв" ? 60 : 1) : def;
+    const st = s.match(/\+\s*(\d+)(?:\s*[–-]\s*\d+)?\s*(хв|с)/);
+    const step = st ? +st[1] * (st[2] === "хв" ? 60 : 1) : 5;
+    const cm = String(t.count || "").match(/(\d+)(?:\s*[–-]\s*(\d+))?/);
+    const max = cm ? +(cm[2] || cm[1]) : 8;
+    return { list, first, step, max };
+  }
+  function steepSeconds(plan, i) {
+    if (plan.list && i <= plan.list.length) return plan.list[i - 1];
+    const base = plan.list ? plan.list[plan.list.length - 1] : plan.first;
+    const k = plan.list ? i - plan.list.length : i - 1;
+    return Math.max(3, base + plan.step * k);
+  }
+  function rinsePlan(t) {
+    const s = (t.rinse || "").toLowerCase();
+    if (!s || /не обов/.test(s)) return { times: 0, sec: 0 };
+    const times = /двічі|2\s*[×x]|1–2×|1-2×/.test(s) ? 2 : 1;
+    const m = s.match(/(\d+)(?:\s*[–-]\s*\d+)?\s*с/);
+    return { times, sec: m ? +m[1] : 5 };
+  }
+  const tempShort = (w) => { const s = String(w || ""); if (/окріп/i.test(s)) return "окріп"; const m = s.match(/(\d+)(?:\s*[–-]\s*(\d+))?/); return m ? (m[2] ? `${m[1]}–${m[2]}°` : `${m[1]}°`) : ""; };
+
+  // ---------- data mapping
+  const teaFrom = (r) => ({
+    id: pid(r.id || r.url), url: r.url || "", name: r["Назва"] || "Без назви", cat: r["Категорія"] || "", format: r["Формат"] || "",
+    region: r["Регіон"] || "", brand: r["Бренд / виробник"] || "", profile: r["Очікуваний профіль"] || "",
+    impressions: r["Враження"] || "", brewText: r["Заварювання"] || "", dose: r["Скільки класти"] || "", ratio: r["Пропорція"] || "",
+    water: r["Вода"] || "", rinse: r["Промивка"] || "", steeps: r["Проливи"] || "", count: r["Кількість проливів"] || "",
+    tip: r["Порада"] || "", when: arr(r["Коли пити"]), link: r["Посилання"] || "", status: r["Статус"] || "",
+    stars: (String(r["Оцінка"] || "").match(/★/g) || []).length, tasted: r["Дата дегустації"] || "",
+  });
+  const logFrom = (r) => ({
+    id: pid(r.id || r.url), teaId: pid(arr(r["Чай"])[0] || ""), date: String(r["Дата"] || "").slice(0, 10), time: r["Час"] || "",
+    action: r["Дія"] || "", verdict: r["Оцінка"] || "", note: r["Нотатка"] || "", steeps: r["Проливи"] ?? "", source: r["Звідки"] || "",
+  });
+
+  function brewStats(teaId) {
+    const brews = state.log.filter((e) => e.teaId === teaId && e.action === "заварив");
+    const t = state.teas.find((x) => x.id === teaId);
+    const dates = brews.map((e) => e.date).concat(t && t.tasted ? [t.tasted] : []).filter(Boolean).sort();
+    return { count: brews.length, last: dates[dates.length - 1] || "" };
+  }
+
+  // ---------- daypart + advisor
+  function hourSetting(name, def) { const v = parseInt(state.settings[name], 10); return Number.isFinite(v) ? v : def; }
+  function currentDaypart() {
+    const h = new Date().getHours();
+    const starts = DAYPARTS.map((d) => hourSetting(d.setting, d.def));
+    const end = hourSetting("Вечір: кінець, год", 21);
+    if (h < starts[0] || h >= end) return { key: "ввечері", title: "Ніч", night: true };
+    let idx = 0;
+    starts.forEach((s, i) => { if (h >= s) idx = i; });
+    return DAYPARTS[idx];
+  }
+  function defaultWhen(cat) {
+    if (/шен|улун|білий|зелений/i.test(cat)) return ["вдень", "після обіду"];
+    if (/ароматиз/i.test(cat)) return ["після обіду", "ввечері"];
+    return ["вранці", "вдень", "після обіду", "ввечері"];
+  }
+  function advise() {
+    const dp = currentDaypart();
+    return state.teas.filter((t) => IN_STOCK.includes(t.status)).map((t) => {
+      const when = t.when.length ? t.when : defaultWhen(t.cat);
+      const st = brewStats(t.id);
+      const d = daysSince(st.last);
+      let score = 0; const why = [];
+      if (when.includes(dp.key)) { score += 40; why.push(dp.night ? "м'який на ніч" : `пасує: ${dp.key}`); }
+      if (dp.night && /шен|улун|червоний/i.test(t.cat)) score -= 30;
+      if (t.status === "Заварюю зараз") { score += 15; why.push("уже відкритий"); }
+      if (t.stars >= 4) { score += 10; why.push(starsView(t.stars)); }
+      if (t.stars && t.stars <= 2) score -= 25;
+      if (d === 0) { score -= 30; why.push("сьогодні вже був"); }
+      else if (d == null) { score += 12; why.push("ще не пробував"); }
+      else { score += Math.min(d, 14); why.push(`востаннє ${ago(st.last)}`); }
+      return { t, score, why };
+    }).sort((a, b) => b.score - a.score).slice(0, 3);
+  }
+
+  // ---------- bridge (Google Apps Script → Notion)
+  const config = () => store.get(CONFIG_KEY, null);
+  class BridgeError extends Error { constructor(code, msg) { super(msg || code); this.code = code; } }
+  async function api(op, payload) {
+    const cfg = config();
+    if (!cfg || !cfg.url || !cfg.key) throw new BridgeError("no_config");
+    let res;
+    try {
+      res = await fetch(cfg.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ key: cfg.key, op }, payload || {})), redirect: "follow" });
+    } catch { throw new BridgeError("offline"); }
+    let data = null;
+    try { data = await res.json(); } catch { throw new BridgeError("bad_response", "Скрипт відповів не JSON. Перевір, що адреса закінчується на /exec і доступ — «Anyone»."); }
+    if (!data.ok) throw new BridgeError(data.error || "error", data.error);
+    return data;
+  }
+  function explain(err) {
+    const c = err && err.code; const m = String(err && err.message || "");
+    if (c === "no_config") return "Застосунок ще не підключено до скрипта.";
+    if (c === "offline") return "Немає інтернету або скрипт недоступний.";
+    if (c === "bad_key") return "Ключ не збігається з APP_KEY у скрипті.";
+    if (c === "no_token") return "У скрипті не задано NOTION_TOKEN.";
+    if (m.startsWith("notion_unauthorized")) return "Notion не прийняв токен. Перевір NOTION_TOKEN у скрипті.";
+    if (m.startsWith("notion_not_shared")) return "Notion не бачить бази. Підключи інтеграцію до «Чайного журналу» і сторінки «Чайна полиця — застосунок».";
+    return "Помилка: " + m.slice(0, 200);
+  }
+
+  async function load(manual) {
+    if (state.loading) return;
+    if (!config()) { openSetup(); render(); return; }
+    state.loading = true; setSync("Синхронізую з Notion…"); $("refresh").disabled = true;
+    try {
+      await flushQueue();
+      if (state.queue.length) throw new BridgeError("offline");
+      const data = await api("load");
+      state.teas = (data.teas || []).map(teaFrom);
+      state.log = (data.log || []).map(logFrom);
+      state.settings = Object.fromEntries((data.settings || []).map((r) => [r["Параметр"], r["Значення"]]));
+      state.loadedAt = Date.now(); state.fromCache = false;
+      store.set(CACHE_KEY, { teas: state.teas, log: state.log, settings: state.settings, at: state.loadedAt });
+      hideBanner();
+      if (manual) toast("Полицю оновлено");
+    } catch (err) {
+      if (err.code === "offline") { state.fromCache = true; if (manual) toast("Немає зв'язку — показую збережену полицю"); }
+      else showBanner(explain(err) + (state.teas.length ? " Показую збережену копію." : ""), err.code === "bad_key" || err.code === "no_config");
+    } finally {
+      state.loading = false; $("refresh").disabled = false; render();
+    }
+  }
+
+  // ---------- offline queue: every change is stored locally first, then sent in order
+  function enqueue(op, payload) {
+    state.queue.push({ op, payload, id: uuid() });
+    store.set(QUEUE_KEY, state.queue);
+    flushQueue().then(render);
+  }
+  let flushing = null;
+  function flushQueue() {
+    if (flushing) return flushing;
+    flushing = (async () => {
+      let sent = 0;
+      while (state.queue.length) {
+        const job = state.queue[0];
+        try { await api(job.op, job.payload); }
+        catch (err) {
+          if (err.code === "offline" || err.code === "bad_response") break;
+          if (err.code === "bad_key" || err.code === "no_token" || err.code === "no_config") { showBanner(explain(err), true); break; }
+          toast("Notion відхилив запис: " + explain(err)); // drop a request Notion will never accept
+        }
+        state.queue.shift(); store.set(QUEUE_KEY, state.queue); sent++;
+      }
+      if (sent && !state.queue.length) toast("Записано в Notion");
+      setSync("");
+    })().finally(() => { flushing = null; });
+    return flushing;
+  }
+
+  // ---------- writes (optimistic, queued)
+  function addLog(tea, action, extra) {
+    const e = Object.assign({ teaId: tea.id, date: todayISO(), time: nowHM(), action, verdict: "", note: "", steeps: "", source: "застосунок" }, extra || {});
+    state.log.unshift(Object.assign({ id: "" }, e));
+    enqueue("createLog", { log: { teaId: tea.id, title: `${action} · ${shortName(tea.name)}`, action, date: e.date, time: e.time, verdict: e.verdict || null, note: e.note || null, steeps: e.steeps === "" ? null : e.steeps, clientKey: uuid() } });
+  }
+  const setTea = (tea, props) => enqueue("updateTea", { teaId: tea.id, props });
+  function persistSnapshot() { store.set(CACHE_KEY, { teas: state.teas, log: state.log, settings: state.settings, at: state.loadedAt }); }
+
+  function saveBrew(tea, steeps, note, stars) {
+    addLog(tea, "заварив", { steeps, note });
+    const props = { "Дата дегустації": todayISO() };
+    const starsChanged = stars && stars !== tea.stars;
+    if (starsChanged) props["Оцінка"] = starsStr(stars);
+    setTea(tea, props);
+    tea.tasted = todayISO();
+    if (starsChanged) { tea.stars = stars; addLog(tea, "оцінка", { verdict: verdictOf(stars) }); }
+    persistSnapshot(); render(); toast(navigator.onLine ? "Чаювання записано" : "Збережено, піде в Notion, щойно буде інтернет");
+    return true;
+  }
+  function setStars(tea, n) {
+    const next = n === tea.stars ? 0 : n;
+    setTea(tea, { "Оцінка": next ? starsStr(next) : null });
+    tea.stars = next;
+    if (next) addLog(tea, "оцінка", { verdict: verdictOf(next) });
+    persistSnapshot(); render();
+  }
+  function setStatus(tea, status) {
+    if (status === tea.status) return;
+    const wasIn = IN_STOCK.includes(tea.status), nowIn = IN_STOCK.includes(status);
+    setTea(tea, { "Статус": status });
+    if (wasIn && !nowIn) addLog(tea, "закінчився");
+    if (!wasIn && nowIn) addLog(tea, "є в наявності");
+    tea.status = status; persistSnapshot(); render();
+  }
+  function saveImpressions(tea, text) {
+    setTea(tea, { "Враження": text }); tea.impressions = text; persistSnapshot(); render(); toast("Враження збережено");
+  }
+
+  // ---------- setup
+  function openSetup(msg) {
+    const cfg = config() || {};
+    $("setupHost").hidden = false;
+    $("setupHost").innerHTML = `<form class="setup" id="setupForm">
+      <h2>Підключення до Notion</h2>
+      <p>Встав адресу свого Google Apps Script (закінчується на <b>/exec</b>) і ключ APP_KEY з його налаштувань. Вони зберігаються лише на цьому пристрої.</p>
+      <label for="cfgUrl">Адреса скрипта<input id="cfgUrl" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(cfg.url || "")}"></label>
+      <label for="cfgKey">Ключ<input id="cfgKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(cfg.key || "")}"></label>
+      ${msg ? `<p class="err">${esc(msg)}</p>` : ""}
+      <div class="actions"><button type="submit" class="btn">Зберегти й перевірити</button>${cfg.url ? '<button type="button" class="btn ghost" data-act="setup-close">Скасувати</button>' : ""}</div>
+    </form>`;
+  }
+  function closeSetup() { $("setupHost").hidden = true; $("setupHost").innerHTML = ""; }
+
+  // ---------- UI: chrome
+  function setSync(t) {
+    const base = state.loadedAt ? `Notion · ${new Date(state.loadedAt).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })}` : "";
+    const q = state.queue.length ? ` · у черзі ${state.queue.length}` : "";
+    $("syncText").textContent = (t || (state.fromCache ? "Збережена копія" : base)) + q;
+  }
+  function showBanner(text, allow) {
+    const b = $("banner");
+    b.className = "banner warn"; b.hidden = false;
+    b.innerHTML = `<p>${esc(text)}</p><div class="actions">${allow ? '<button class="btn" type="button" data-act="setup">Підключення</button>' : ""}<button class="btn ghost" type="button" data-act="reload">Оновити</button></div>`;
+  }
+  function hideBanner() { $("banner").hidden = true; }
+  let toastTimer;
+  function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 2800); }
+
+  // ---------- render
+  function render() {
+    const dp = currentDaypart();
+    const inStock = state.teas.filter((t) => IN_STOCK.includes(t.status)).length;
+    $("daypart").textContent = state.teas.length ? `${dp.title} · ${inStock} ${plural(inStock, "чай", "чаї", "чаїв")} на полиці` : (state.loading ? "Завантажую полицю…" : "Полиця порожня");
+    setSync(state.loading ? "Синхронізую з Notion…" : "");
+    document.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)));
+    $("view-shelf").hidden = state.tab !== "shelf";
+    $("view-journal").hidden = state.tab !== "journal";
+    if (state.tab === "shelf") { renderAdvice(dp); renderFilters(); renderGrid(); renderDetail(); }
+    else renderJournal();
+  }
+  function plural(n, a, b, c) { const m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return a; if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return b; return c; }
+
+  function renderAdvice(dp) {
+    const picks = advise();
+    if (!picks.length) { $("advice").innerHTML = ""; return; }
+    $("advice").innerHTML = `<p class="eyebrow">${esc(dp.night ? "Пізно, але якщо хочеться" : "Що заварити зараз")}</p><div class="advice-row">${picks.map(({ t, why }) => {
+      const p = steepPlan(t);
+      return `<div class="pick"><button type="button" class="pick-open" data-open="${t.id}"><span class="cat" style="--c:${catVar(t.cat)}"><span class="dot"></span>${esc(t.cat || "Чай")}</span><span class="name">${esc(nameParts(t.name).main)}</span><span class="why">${esc(why.slice(0, 2).join(" · "))}</span><span class="meta"><span>${esc(tempShort(t.water))}</span><span>${p.first} с, +${p.step} с</span></span></button><button type="button" class="btn liquor" data-brew="${t.id}">Заварити → таймер</button></div>`;
+    }).join("")}</div>`;
+  }
+  const FILTERS = [["in", "На полиці"], ["all", "Усі"], ["want", "Хочу ще"], ["out", "Випито"]];
+  function renderFilters() {
+    $("filters").innerHTML = FILTERS.map(([k, l]) => `<button type="button" class="chip" aria-pressed="${state.filter === k}" data-filter="${k}">${l}</button>`).join("");
+  }
+  function filtered() {
+    const f = state.filter;
+    const list = state.teas.filter((t) => f === "all" ? true : f === "in" ? IN_STOCK.includes(t.status) || !t.status : f === "want" ? t.status === "Хочу ще" : t.status === "Випито");
+    return list.sort((a, b) => (a.cat || "яя").localeCompare(b.cat || "яя", "uk") || a.name.localeCompare(b.name, "uk"));
+  }
+  function renderGrid() {
+    const list = filtered();
+    if (!state.teas.length) { $("grid").innerHTML = `<div class="empty">${state.loading ? "Завантажую чаї з Notion…" : "Чаї з «Чайного журналу» в Notion з'являться тут."}</div>`; return; }
+    if (!list.length) { $("grid").innerHTML = `<div class="empty">У цьому розділі поки порожньо.</div>`; return; }
+    $("grid").innerHTML = list.map((t) => {
+      const st = brewStats(t.id); const p = steepPlan(t); const np = nameParts(t.name);
+      const pill = t.status === "Хочу ще" ? '<span class="pill want">Хочу ще</span>' : t.status === "Випито" ? '<span class="pill">Випито</span>' : t.status === "Заварюю зараз" ? '<span class="pill now">Заварюю зараз</span>' : "";
+      return `<button type="button" class="card${IN_STOCK.includes(t.status) ? "" : " out"}" data-open="${t.id}" aria-current="${state.selected === t.id}">
+        <span class="cat" style="--c:${catVar(t.cat)}"><span class="dot"></span>${esc(t.cat || "Без категорії")}</span>
+        <span class="name">${esc(np.main)}${np.sub ? `<small>${esc(np.sub)}</small>` : ""}</span>
+        ${IN_STOCK.includes(t.status) ? '<span class="pill now">Торкнись, щоб заварити</span>' : ""}
+        <span class="meta"><span>${esc(tempShort(t.water) || "—")}</span><span>${p.first} с</span>${st.last ? `<span>${esc(ago(st.last))}</span>` : ""}</span>
+        ${t.stars ? `<span class="stars" aria-label="${t.stars} з 5">${starsView(t.stars)}</span>` : ""}${pill}
+      </button>`;
+    }).join("");
+  }
+  function param(label, value, wide) { return value ? `<div class="param${wide ? " wide" : ""}"><b>${esc(label)}</b>${esc(value)}</div>` : ""; }
+  function renderDetail() {
+    const host = $("detailHost");
+    const t = state.teas.find((x) => x.id === state.selected);
+    if (!t) { host.hidden = true; host.innerHTML = ""; return; }
+    host.hidden = false;
+    const np = nameParts(t.name); const st = brewStats(t.id);
+    const hist = state.log.filter((e) => e.teaId === t.id).slice(0, 6);
+    host.innerHTML = `<article class="detail" aria-label="${esc(t.name)}">
+      <button type="button" class="iconbtn close" data-act="close">Закрити</button>
+      <div>
+        <span class="cat" style="--c:${catVar(t.cat)}"><span class="dot"></span>${esc([t.cat, t.format, t.region].filter(Boolean).join(" · "))}</span>
+        <h2>${esc(np.main)}</h2>
+        ${np.sub ? `<p class="sub">${esc(np.sub)}</p>` : ""}
+        <p class="sub">${st.count ? `Заварював ${st.count} ${plural(st.count, "раз", "рази", "разів")}` : "Ще не заварював у застосунку"}${st.last ? ` · востаннє ${esc(fmtDate(st.last))}` : ""}</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn liquor" data-act="brew">Заварити з таймером</button>
+        <button type="button" class="btn ghost" data-act="quick">Заварив без таймера</button>
+      </div>
+      <div class="params">
+        ${param("Скільки класти", t.dose, true)}${param("Пропорція", t.ratio)}${param("Вода", t.water)}
+        ${param("Промивка", t.rinse)}${param("Проливи", t.steeps)}${param("Кількість проливів", t.count)}
+        ${param("Коли пити", t.when.join(", "))}
+      </div>
+      ${t.tip ? `<div><p class="section-title">Порада</p><p class="prose">${esc(t.tip)}</p></div>` : ""}
+      ${t.profile ? `<div><p class="section-title">Очікуваний профіль</p><p class="prose">${esc(t.profile)}</p></div>` : ""}
+      <div><p class="section-title">Оцінка</p><div class="rate" role="group" aria-label="Оцінка">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="${n <= t.stars ? "on" : ""}" data-star="${n}" aria-label="${n} з 5">★</button>`).join("")}</div></div>
+      <div><p class="section-title">Статус</p><div class="seg">${STATUSES.map((s) => `<button type="button" data-status="${esc(s)}" aria-pressed="${t.status === s}">${esc(s)}</button>`).join("")}</div></div>
+      <div><p class="section-title">Враження</p><textarea id="impr-${t.id}" placeholder="Що відчув у чашці">${esc(t.impressions)}</textarea>
+        <div class="actions" style="margin-top:8px"><button type="button" class="btn ghost" data-act="impr">Зберегти враження</button></div></div>
+      ${t.brand ? `<div><p class="section-title">Бренд / виробник</p><p class="prose">${esc(t.brand)}</p></div>` : ""}
+      ${hist.length ? `<div><p class="section-title">Історія</p><ul class="hist">${hist.map((e) => `<li><time>${esc(fmtDate(e.date))}</time><span>${esc(e.action)}${e.action === "заварив" && e.steeps !== "" ? `, ${esc(e.steeps)} прол.` : ""}${e.verdict ? ` · ${esc(e.verdict)}` : ""}${e.note ? ` · ${esc(e.note)}` : ""}</span></li>`).join("")}</ul></div>` : ""}
+      <div class="actions"><a class="btn ghost" href="${esc(t.url.replace("app.notion.com/p/", "www.notion.so/"))}" target="_blank" rel="noopener">Відкрити в Notion</a>${t.link ? `<a class="btn ghost" href="${esc(t.link)}" target="_blank" rel="noopener">Магазин</a>` : ""}</div>
+    </article>`;
+  }
+  function renderJournal() {
+    const entries = state.log.filter((e) => e.date).slice().sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+    if (!entries.length) { $("journal").innerHTML = `<div class="empty">${state.loading ? "Завантажую журнал…" : "Ще жодного запису. Заварюй чай з полиці, і він з'явиться тут та в базі «Чаювання»."}</div>`; return; }
+    const groups = new Map();
+    entries.forEach((e) => { const k = e.date.slice(0, 7); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
+    const byId = Object.fromEntries(state.teas.map((t) => [t.id, t]));
+    $("journal").innerHTML = [...groups].map(([k, list]) => {
+      const [y, m] = k.split("-").map(Number);
+      const brews = list.filter((e) => e.action === "заварив").length;
+      return `<div class="month"><h3>${MONTHS[m - 1]} ${y} · ${brews} ${plural(brews, "чаювання", "чаювання", "чаювань")}</h3><ul class="entries">${list.map((e) => {
+        const t = byId[e.teaId];
+        const what = e.action === "заварив" ? (t ? shortName(t.name) : "Чай") + (e.steeps !== "" ? ` · ${e.steeps} прол.` : "") : `${e.action}${t ? " · " + shortName(t.name) : ""}`;
+        return `<li class="entry"><time>${esc(fmtDate(e.date).split(" ")[0])} ${esc(MONTHS_GEN[m - 1].slice(0, 3))}${e.time ? `<br>${esc(e.time)}` : ""}</time><div><div class="what">${esc(what)}</div>${e.verdict ? `<div class="note">${esc(e.verdict)}</div>` : ""}</div>${e.note ? `<div class="note">${esc(e.note)}</div>` : ""}</li>`;
+      }).join("")}</ul></div>`;
+    }).join("");
+  }
+
+  // ---------- timer
+  let audio = null;
+  function beep() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audio.currentTime;
+      [0, 0.35, 0.7].forEach((d) => {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = "sine"; o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, t0 + d); g.gain.exponentialRampToValueAtTime(0.35, t0 + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + 0.28);
+        o.connect(g).connect(audio.destination); o.start(t0 + d); o.stop(t0 + d + 0.3);
+      });
+    } catch {}
+    try { navigator.vibrate && navigator.vibrate([200, 120, 200]); } catch {}
+  }
+  function unlockAudio() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); } catch {} }
+  let wake = null;
+  async function keepAwake(on) {
+    try { if (on && !wake && navigator.wakeLock) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } if (!on && wake) { await wake.release(); wake = null; } } catch {}
+  }
+
+  let tm = null; // timer state
+  function openTimer(tea) {
+    const plan = steepPlan(tea), rinse = rinsePlan(tea);
+    tm = { tea, plan, rinse, rinsesDone: 0, steep: 0, kind: rinse.times ? "rinse" : "steep", dur: 0, endAt: 0, left: 0, running: false, finished: false };
+    if (tm.kind === "rinse") { tm.dur = rinse.sec; } else { tm.steep = 1; tm.dur = steepSeconds(plan, 1); }
+    tm.left = tm.dur;
+    $("timerHost").hidden = false; keepAwake(true); renderTimer();
+  }
+  function closeTimer() { tm = null; $("timerHost").hidden = true; $("timerHost").innerHTML = ""; keepAwake(false); }
+  function tick() {
+    if (!tm || !tm.running) return;
+    tm.left = Math.max(0, Math.ceil((tm.endAt - Date.now()) / 1000));
+    if (tm.left <= 0) { tm.running = false; tm.finished = true; beep(); }
+    renderTimer();
+    if (tm && tm.running) setTimeout(tick, 250);
+  }
+  function startPause() {
+    unlockAudio();
+    if (tm.finished) return nextPhase();
+    if (tm.running) { tm.running = false; tm.left = Math.max(0, Math.ceil((tm.endAt - Date.now()) / 1000)); renderTimer(); return; }
+    tm.running = true; tm.endAt = Date.now() + tm.left * 1000; renderTimer(); setTimeout(tick, 250);
+  }
+  function adjust(d) {
+    const nd = Math.max(3, tm.dur + d);
+    const diff = nd - tm.dur; tm.dur = nd;
+    if (tm.running) tm.endAt += diff * 1000; else tm.left = Math.max(1, tm.left + diff);
+    if (tm.finished && diff > 0) { tm.finished = false; tm.left = diff; }
+    renderTimer();
+  }
+  function nextPhase() {
+    tm.running = false; tm.finished = false;
+    if (tm.kind === "rinse") {
+      tm.rinsesDone++;
+      if (tm.rinsesDone < tm.rinse.times) { tm.dur = tm.rinse.sec; }
+      else { tm.kind = "steep"; tm.steep = 1; tm.dur = steepSeconds(tm.plan, 1); }
+    } else { tm.steep++; tm.dur = steepSeconds(tm.plan, tm.steep); }
+    tm.left = tm.dur; renderTimer();
+  }
+  function renderTimer() {
+    if (!tm) return;
+    const t = tm.tea; const C = 2 * Math.PI * 140;
+    const frac = tm.dur ? 1 - tm.left / tm.dur : 0;
+    const label = tm.kind === "rinse" ? `Промивка${tm.rinse.times > 1 ? ` ${tm.rinsesDone + 1} з ${tm.rinse.times}` : ""}` : `Пролив ${tm.steep}${t.count ? ` · з ${t.count}` : ""}`;
+    const main = tm.finished ? (tm.kind === "rinse" ? "Злий промивку" : "Зливай!") : tm.running ? "Настоюється" : tm.left < tm.dur ? "Пауза" : "Залий воду й торкнись";
+    const btn = tm.finished ? (tm.kind === "rinse" ? (tm.rinsesDone + 1 < tm.rinse.times ? "Ще промивка" : "До першого проливу") : "Наступний пролив") : tm.running ? "Пауза" : tm.left < tm.dur ? "Продовжити" : "Старт";
+    const secs = tm.left >= 60 ? `${Math.floor(tm.left / 60)}:${pad(tm.left % 60)}` : String(tm.left);
+    $("timerHost").innerHTML = `<div class="timer">
+      <h2>${esc(nameParts(t.name).main)}</h2>
+      <p class="hint">${esc([t.water, t.ratio || t.dose].filter(Boolean).join(" · "))}</p>
+      <div class="phase">${esc(label)}</div>
+      <button type="button" class="ring${tm.finished ? " done" : ""}" data-t="toggle" aria-label="${esc(btn)}">
+        <svg viewBox="0 0 320 320" aria-hidden="true"><circle class="liq" cx="160" cy="160" r="${(126 * Math.max(0.04, frac)).toFixed(1)}"></circle><circle class="track" cx="160" cy="160" r="140"></circle><circle class="prog" cx="160" cy="160" r="140" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - frac)).toFixed(1)}"></circle></svg>
+        <span class="center"><span class="secs">${secs}</span><span class="lbl">${esc(main)}</span></span>
+      </button>
+      <div class="stepper"><button type="button" data-t="minus">−5 с</button><span>${tm.dur} с</span><button type="button" data-t="plus">+5 с</button></div>
+      <div class="tbar">
+        <button type="button" class="btn liquor" data-t="toggle">${esc(btn)}</button>
+        ${!tm.finished && tm.kind === "steep" || tm.kind === "rinse" ? `<button type="button" class="btn ghost" data-t="skip">${tm.kind === "rinse" ? "Без промивки" : "Пропустити пролив"}</button>` : ""}
+      </div>
+      <div class="tbar">
+        <button type="button" class="btn" data-t="finish">Допили — записати</button>
+        <button type="button" class="btn ghost" data-t="cancel">Закрити без запису</button>
+      </div>
+    </div>`;
+  }
+  function skipPhase() {
+    if (tm.kind === "rinse") { tm.rinsesDone = tm.rinse.times - 1; }
+    nextPhase();
+  }
+
+  // ---------- finish sheet
+  let sheet = null;
+  function openFinish(tea, steeps) {
+    sheet = { tea, steeps: Math.max(1, steeps || 1), stars: tea.stars };
+    renderSheet(); $("sheetHost").hidden = false;
+  }
+  function renderSheet() {
+    const s = sheet;
+    $("sheetHost").innerHTML = `<form class="sheet" id="finishForm">
+      <h2>${esc(shortName(s.tea.name))}</h2>
+      <div><p class="section-title">Скільки проливів</p><div class="stepper"><button type="button" data-s="minus">−</button><span style="font-weight:700;font-variant-numeric:tabular-nums">${s.steeps}</span><button type="button" data-s="plus">+</button></div></div>
+      <div><p class="section-title">Оцінка</p><div class="rate">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="${n <= s.stars ? "on" : ""}" data-s-star="${n}" aria-label="${n} з 5">★</button>`).join("")}</div></div>
+      <div><p class="section-title">Нотатка</p><textarea id="finishNote" placeholder="Як пішло сьогодні">${esc(s.note || "")}</textarea></div>
+      <div class="actions"><button type="submit" class="btn">Записати в Notion</button><button type="button" class="btn ghost" data-s="cancel">Скасувати</button></div>
+    </form>`;
+  }
+  function closeSheet() { sheet = null; $("sheetHost").hidden = true; $("sheetHost").innerHTML = ""; }
+
+  // ---------- events
+  document.addEventListener("click", async (ev) => {
+    const el = ev.target.closest("button, a"); if (!el) return;
+    const d = el.dataset;
+    if (d.tab) { state.tab = d.tab; render(); return; }
+    if (d.filter) { state.filter = d.filter; render(); return; }
+    if (d.open) { state.selected = d.open; render(); if (window.matchMedia("(max-width: 899px)").matches) $("detailHost").scrollTop = 0; return; }
+    if (d.brew) { const t = state.teas.find((x) => x.id === d.brew); if (t) { state.selected = t.id; render(); unlockAudio(); openTimer(t); } return; }
+    if (d.star) { const t = cur(); if (t) await setStars(t, +d.star); return; }
+    if (d.status) { const t = cur(); if (t) await setStatus(t, d.status); return; }
+    if (d.act === "close") { state.selected = null; render(); return; }
+    if (d.act === "reload") { load(true); return; }
+    if (d.act === "setup") { openSetup(); return; }
+    if (d.act === "setup-close") { closeSetup(); return; }
+    if (d.act === "brew") { const t = cur(); if (t) { unlockAudio(); openTimer(t); } return; }
+    if (d.act === "quick") { const t = cur(); if (t) openFinish(t, 1); return; }
+    if (d.act === "impr") { const t = cur(); const ta = t && $("impr-" + t.id); if (t && ta) await saveImpressions(t, ta.value.trim()); return; }
+    if (d.t && tm) {
+      if (d.t === "toggle") startPause();
+      else if (d.t === "minus") adjust(-5);
+      else if (d.t === "plus") adjust(5);
+      else if (d.t === "skip") skipPhase();
+      else if (d.t === "cancel") closeTimer();
+      else if (d.t === "finish") { const tea = tm.tea; const n = tm.kind === "steep" ? tm.steep : 0; closeTimer(); openFinish(tea, n); }
+      return;
+    }
+    if (d.s && sheet) {
+      if (d.s === "minus") { sheet.note = $("finishNote").value; sheet.steeps = Math.max(1, sheet.steeps - 1); renderSheet(); }
+      else if (d.s === "plus") { sheet.note = $("finishNote").value; sheet.steeps = Math.min(30, sheet.steeps + 1); renderSheet(); }
+      else if (d.s === "cancel") closeSheet();
+      return;
+    }
+    if (d.sStar && sheet) { sheet.note = $("finishNote").value; const n = +d.sStar; sheet.stars = n === sheet.stars ? 0 : n; renderSheet(); return; }
+  });
+  document.addEventListener("submit", async (ev) => {
+    if (ev.target.id === "setupForm") {
+      ev.preventDefault();
+      const url = $("cfgUrl").value.trim(), key = $("cfgKey").value.trim();
+      if (!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(url)) { openSetup("Адреса має починатися з https://script.google.com/"); return; }
+      const prev = config(); store.set(CONFIG_KEY, { url, key });
+      try { await api("load"); closeSetup(); load(true); }
+      catch (err) { if (prev) store.set(CONFIG_KEY, prev); else { try { localStorage.removeItem(CONFIG_KEY); } catch {} } openSetup(explain(err)); }
+      return;
+    }
+    if (ev.target.id !== "finishForm" || !sheet) return;
+    ev.preventDefault();
+    const s = sheet; const note = $("finishNote").value.trim();
+    const btn = ev.target.querySelector("[type=submit]"); btn.disabled = true;
+    const ok = await saveBrew(s.tea, s.steeps, note, s.stars);
+    if (ok) closeSheet(); else btn.disabled = false;
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape") return;
+    if (!$("setupHost").hidden && config()) closeSetup(); else if (sheet) closeSheet(); else if (tm) closeTimer(); else if (state.selected) { state.selected = null; render(); }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    if (tm && tm.running) tick();
+    if (tm) keepAwake(true);
+    if (!tm && !sheet && Date.now() - state.loadedAt > 5 * 60 * 1000) load(false);
+  });
+  $("refresh").addEventListener("click", () => load(true));
+  $("settingsBtn").addEventListener("click", () => openSetup());
+  window.addEventListener("online", () => { flushQueue().then(() => load(false)); });
+  const cur = () => state.teas.find((t) => t.id === state.selected);
+  setInterval(() => { if (!tm && !sheet && state.tab === "shelf") renderAdvice(currentDaypart()); }, 10 * 60 * 1000);
+
+  // ---------- boot
+  const snap = store.get(CACHE_KEY, null);
+  if (snap && Array.isArray(snap.teas)) { state.teas = snap.teas; state.log = snap.log || []; state.settings = snap.settings || {}; state.loadedAt = snap.at || 0; state.fromCache = true; }
+  state.queue = store.get(QUEUE_KEY, []);
+  render();
+  load(false);
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
+</script>
+</body>
+</html>
